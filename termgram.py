@@ -1,19 +1,32 @@
 #!/usr/bin/env python3
-import datetime
-import sys
-import time
-
-import urwid
 from telethon import TelegramClient
-from telethon.tl.functions.messages import GetHistoryRequest
-from telethon.tl.types import User, Channel
+from telethon.utils import get_display_name
+from telethon.tl.types import UpdateNewMessage
 
 
 API_ID = 
 API_HASH = ''
 
-client = TelegramClient('termgram', API_ID, API_HASH)
+client = TelegramClient('termgram', API_ID, API_HASH, update_workers=1)
 selected_chat = None
+
+
+def init():
+    client.add_update_handler(update_handler)
+
+
+def welcome():
+    t = '''
+         _                                                
+        | |                                               
+        | |_ ___ _ __ _ __ ___   __ _ _ __ __ _ _ __ ___  
+        | __/ _ \ '__| '_ ` _ \ / _` | '__/ _` | '_ ` _ \ 
+        | ||  __/ |  | | | | | | (_| | | | (_| | | | | | |
+         \__\___|_|  |_| |_| |_|\__, |_|  \__,_|_| |_| |_|
+                                 __/ |                    
+                                |___/   v0.1                  
+        '''
+    print(t)
 
 
 def login():
@@ -24,7 +37,7 @@ def login():
         code = input("Activation code: ")
         client.sign_in(code=code)
         if not client.is_user_authorized():
-            print("Invalid code. Try again.\n")
+            print("Failed to authenticate. Try again.\n")
 
 
 def select_chatroom():
@@ -32,20 +45,10 @@ def select_chatroom():
     option_count = 0
     dialogs, entities = client.get_dialogs(10)
     for entity in entities:
-        if isinstance(entity, User):
-            if entity.first_name:
-                label = entity.first_name
-            if entity.last_name:
-                label += ' ' + entity.last_name
-            if not label and entity.username:
-                label = entity.username
-            if not label:
-                label = entity.id
-        if isinstance(entity, Channel):
-            label = entity.title
-        option_count += 1
+        label = get_display_name(entity)
         options[option_count] = entity
         print("{:>3}: {}".format(option_count, label))
+        option_count += 1
     answer = int(input("\nSelect chatroom: "))
     global selected_chat
     selected_chat = options[answer]
@@ -53,21 +56,23 @@ def select_chatroom():
 
 def open_chatroom():
     while True:
-        result = client(GetHistoryRequest(
-            selected_chat,
-            limit=10,
-            offset_date=datetime.datetime.now(),
-            offset_id=0,
-            max_id=0,
-            min_id=0,
-            add_offset=0
-        ))
-        for msg in reversed(result.messages):
-            print(msg.message)
-        time.sleep(3)
+        input('')
+
+
+def update_handler(update):
+    if isinstance(update, UpdateNewMessage):
+        if update.message.from_id == selected_chat.id:
+            date = str(update.message.date).split()[1][:-3]  # HH:MM
+            from_label = get_display_name(client.get_entity(update.message.from_id))
+            message = update.message.message
+            if not message:
+                message = '{media}'
+            print("[{}] {}: {}".format(date, from_label, message))
 
 
 def main():
+    init()
+    welcome()
     login()
     select_chatroom()
     open_chatroom()
