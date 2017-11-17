@@ -1,60 +1,76 @@
 #!/usr/bin/env python3
+import datetime
 import sys
+import time
 
 import urwid
 from telethon import TelegramClient
-from telethon.tl.functions.messages import GetDialogsRequest
-from telethon.tl.types import InputPeerEmpty
+from telethon.tl.functions.messages import GetHistoryRequest
+from telethon.tl.types import User, Channel
 
 
 API_ID = 117120
 API_HASH = '4f3d31306935d48f1c9cc42b75838521'
+
 client = TelegramClient('termgram', API_ID, API_HASH)
 selected_chat = None
 
 
 def login():
     client.connect()
-    if not client.is_user_authorized():
+    while not client.is_user_authorized():
         phone = input("Phone number: ")
         client.sign_in(phone=phone)
         code = input("Activation code: ")
         client.sign_in(code=code)
         if not client.is_user_authorized():
-            print("Invalid code. Try again.")
-            sys.exit(1)
+            print("Invalid code. Try again.\n")
 
 
 def select_chatroom():
-    results = client(GetDialogsRequest(
-        offset_date=None,
-        offset_id=0,
-        offset_peer=InputPeerEmpty(),
-        limit=10
-    ))
-
-    chatrooms = {}
-    id_count = 0
-    for group in results.chats:
-        chatrooms[id_count] = ('group', group.id, group.title)
-        id_count += 1
-        print("{}: {} (Group)".format(id_count, group.title))
-    for user in results.users:
-        full_name = user.first_name
-        if user.last_name:
-            full_name += " " + user.last_name
-        chatrooms[id_count] = ('user', user.id, full_name)
-        id_count += 1
-        print("{}: {} (User)".format(id_count, full_name))
-
-    answer = int(input("\nSelect chat ID: "))
+    options = {}
+    option_count = 0
+    dialogs, entities = client.get_dialogs(10)
+    for entity in entities:
+        if isinstance(entity, User):
+            if entity.first_name:
+                label = entity.first_name
+            if entity.last_name:
+                label += ' ' + entity.last_name
+            if not label and entity.username:
+                label = entity.username
+            if not label:
+                label = entity.id
+        if isinstance(entity, Channel):
+            label = entity.title
+        option_count += 1
+        options[option_count] = entity
+        print("{:>3}: {}".format(option_count, label))
+    answer = int(input("\nSelect chatroom: "))
     global selected_chat
-    selected_chat = chatrooms[answer]
+    selected_chat = options[answer]
+
+
+def open_chatroom():
+    while True:
+        result = client(GetHistoryRequest(
+            selected_chat,
+            limit=10,
+            offset_date=datetime.datetime.now(),
+            offset_id=0,
+            max_id=0,
+            min_id=0,
+            add_offset=0
+        ))
+        for msg in reversed(result.messages):
+            print(msg.message)
+        time.sleep(3)
 
 
 def main():
     login()
     select_chatroom()
+    open_chatroom()
 
 
 if __name__ == '__main__':
