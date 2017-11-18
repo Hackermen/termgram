@@ -61,7 +61,7 @@ def select_chatroom():
     try:
         options = {}
         option_count = 0
-        dialogs, entities = client.get_dialogs(10)
+        dialogs, entities = client.get_dialogs(15)
         for entity in entities:
             label = get_display_name(entity)
             options[option_count] = entity
@@ -77,7 +77,8 @@ def select_chatroom():
 
 def active_chatroom():
     while True:
-        input('')
+        msg = input('')
+        client.send_message(current_chatroom, msg)
 
 
 def update_handler(update):
