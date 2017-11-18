@@ -74,7 +74,8 @@ def select_chatroom():
 
 def active_chatroom():
     while True:
-        input('')
+        msg = input('')
+        client.send_message(current_chatroom, msg)
 
 
 def update_handler(update):
