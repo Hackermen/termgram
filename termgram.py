@@ -55,6 +55,7 @@ def loop():
                 select_chatroom()
             active_chatroom()
         except KeyboardInterrupt:
+            global current_chatroom
             current_chatroom = None
             print('\n')
             select_chatroom()
@@ -83,24 +84,26 @@ def active_chatroom():
         client.send_message(current_chatroom, msg)
 
 
+def display_message(date, sender_id, message):
+    date = date.strftime("%H:%M")
+    sender_name = get_display_name(client.get_entity(sender_id))
+    if not message:
+        message = '{multimedia}'
+    print("[{}] {}: {}".format(date, sender_name, message))
+
+
 def update_handler(update):
     if isinstance(update, (UpdateNewMessage, UpdateNewChannelMessage)):
         if update.message.from_id == current_chatroom.id:
-            date = str(update.message.date).split()[1][:-3]  # HH:MM
-            sender = get_display_name(client.get_entity(update.message.from_id))
-            message = update.message.message
-            if not message:
-                message = '{multimedia}'
-            print("[{}] {}: {}".format(date, sender, message))
+            display_message(update.message.date, update.message.from_id, update.message.message)
 
-    elif isinstance(update, UpdateShortMessage, UpdateShortChatMessage):
+    elif isinstance(update, UpdateShortMessage):
+        if update.user_id == current_chatroom.id:
+            display_message(update.date, update.user_id, update.message)
+
+    elif isinstance(update, UpdateShortChatMessage):
         if update.chat_id == current_chatroom.id:
-            date = str(update.date).split()[1][:-3]  # HH:MM
-            sender = get_display_name(client.get_entity(update.from_id))
-            message = update.message
-            if not message:
-                message = '{multimedia}'
-            print("[{}] {}: {}".format(date, sender, message))
+            display_message(update.date, update.from_id, update.message)
 
 
 def main():
