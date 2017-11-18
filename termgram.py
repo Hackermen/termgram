@@ -58,7 +58,7 @@ def select_chatroom():
     try:
         options = {}
         option_count = 0
-        dialogs, entities = client.get_dialogs(10)
+        dialogs, entities = client.get_dialogs(15)
         for entity in entities:
             label = get_display_name(entity)
             options[option_count] = entity
