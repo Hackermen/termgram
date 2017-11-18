@@ -13,7 +13,7 @@ API_ID = 117120
 API_HASH = '4f3d31306935d48f1c9cc42b75838521'
 
 telegram = TelegramClient('termgram', API_ID, API_HASH, update_workers=1)
-current_chatroom = None  # User or Group you're chatting
+current_chat = None  # User or Group you're chatting
 
 input_field = urwid.Edit('>: ')
 messages_field = urwid.Text('')
@@ -64,14 +64,14 @@ def login():
 
 
 def loop():
-    global current_chatroom
+    global current_chat
     while True:
         try:
-            if not current_chatroom:
+            if not current_chat:
                 select_chatroom()
             active_chatroom()
         except KeyboardInterrupt:
-            current_chatroom = None
+            current_chat = None
             print('\n')
             select_chatroom()
 
@@ -87,8 +87,8 @@ def select_chatroom():
             print("{:>3}: {}".format(option_count, label))
             option_count += 1
         answer = int(input("\nSelect chatroom: "))
-        global current_chatroom
-        current_chatroom = options[answer]
+        global current_chat
+        current_chat = options[answer]
     except KeyboardInterrupt:
         sys.exit(0)
 
@@ -109,24 +109,25 @@ def display_message(date, sender_id, message):
 
 def update_handler(update):
     if isinstance(update, (types.UpdateNewMessage, types.UpdateNewChannelMessage)):
-        if update.message.from_id == current_chatroom.id:
+        if update.message.from_id == current_chat.id or update.message.to_id.channel_id == current_chat.id:
             display_message(update.message.date, update.message.from_id, update.message.message)
 
     elif isinstance(update, types.UpdateShortMessage):
-        if update.user_id == current_chatroom.id:
+        if update.user_id == current_chat.id:
             display_message(update.date, update.user_id, update.message)
 
     elif isinstance(update, types.UpdateShortChatMessage):
-        if update.chat_id == current_chatroom.id:
+        if update.chat_id == current_chat.id:
             display_message(update.date, update.from_id, update.message)
 
 
 def input_handler(key):
     if key == 'enter':
         msg = input_field.get_edit_text()
-        telegram.send_message(current_chatroom, msg)
-        display_message(datetime.datetime.now(), telegram.get_me(), msg)
-        input_field.set_edit_text('')  # clear
+        if msg.strip():  # not empty message
+            telegram.send_message(current_chat, msg)
+            display_message(datetime.datetime.now(), telegram.get_me(), msg)
+            input_field.set_edit_text('')  # clear
 
     elif key == 'esc':
         # @TODO: select another chatroom?
@@ -134,6 +135,7 @@ def input_handler(key):
 
     elif key == 'ctrl l':
         messages_field.set_text('')  # clear all messages
+        mainloop.draw_screen()
 
 
 def main():
