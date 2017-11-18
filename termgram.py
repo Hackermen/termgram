@@ -72,6 +72,7 @@ def loop():
             active_chatroom()
         except KeyboardInterrupt:
             current_chat = None
+            messages_field.set_text('')
             print('\n')
             select_chatroom()
 
@@ -134,7 +135,8 @@ def input_handler(key):
         pass
 
     elif key == 'ctrl l':
-        messages_field.set_text('')  # clear all messages
+        # clear all messages
+        messages_field.set_text('')
         mainloop.draw_screen()
 
 
