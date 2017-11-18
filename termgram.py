@@ -37,12 +37,15 @@ def welcome():
 def login():
     client.connect()
     while not client.is_user_authorized():
-        phone = input("Phone number: ")
-        client.sign_in(phone=phone)
-        code = input("Activation code: ")
-        client.sign_in(code=code)
-        if not client.is_user_authorized():
-            print("Failed to authenticate. Try again.\n")
+        try:
+            phone = input("Phone number: ")
+            client.sign_in(phone=phone)
+            code = input("Activation code: ")
+            client.sign_in(code=code)
+            if not client.is_user_authorized():
+                print("Failed to authenticate. Try again.\n")
+        except KeyboardInterrupt:
+            sys.exit(0)
 
 
 def loop():
@@ -71,7 +74,6 @@ def select_chatroom():
         global current_chatroom
         current_chatroom = options[answer]
     except KeyboardInterrupt:
-        print("\nExiting...")
         sys.exit(0)
 
 
