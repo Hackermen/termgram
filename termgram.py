@@ -3,7 +3,9 @@ import sys
 
 from telethon import TelegramClient
 from telethon.utils import get_display_name
-from telethon.tl.types import UpdateNewMessage
+from telethon.tl.types import (
+    UpdateNewMessage, UpdateNewChannelMessage, UpdateShortMessage, UpdateShortChatMessage
+)
 
 
 TERMGRAM_VERSION = 0.1
@@ -50,6 +52,7 @@ def loop():
                 select_chatroom()
             active_chatroom()
         except KeyboardInterrupt:
+            current_chatroom = None
             print('\n')
             select_chatroom()
 
@@ -78,11 +81,20 @@ def active_chatroom():
 
 
 def update_handler(update):
-    if isinstance(update, UpdateNewMessage):
+    if isinstance(update, (UpdateNewMessage, UpdateNewChannelMessage)):
         if update.message.from_id == current_chatroom.id:
             date = str(update.message.date).split()[1][:-3]  # HH:MM
             sender = get_display_name(client.get_entity(update.message.from_id))
             message = update.message.message
+            if not message:
+                message = '{multimedia}'
+            print("[{}] {}: {}".format(date, sender, message))
+
+    elif isinstance(update, UpdateShortMessage, UpdateShortChatMessage):
+        if update.chat_id == current_chatroom.id:
+            date = str(update.date).split()[1][:-3]  # HH:MM
+            sender = get_display_name(client.get_entity(update.from_id))
+            message = update.message
             if not message:
                 message = '{multimedia}'
             print("[{}] {}: {}".format(date, sender, message))
