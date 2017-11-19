@@ -26,18 +26,8 @@ def init():
     # Telegram event polling
     telegram.add_update_handler(update_handler)
 
+    # UI settings
     header_text.set_align_mode('center')
-
-    global message_list
-    message_list = urwid.ListBox(urwid.SimpleFocusListWalker([]))
-    body = urwid.LineBox(message_list)
-
-    global mainframe
-    mainframe = urwid.Frame(header=header_text, body=body, footer=input_field)
-    mainframe.focus_part = 'footer'
-
-    global mainloop
-    mainloop = urwid.MainLoop(mainframe, unhandled_input=input_handler)
 
 
 def welcome():
@@ -84,23 +74,47 @@ def loop():
 
 def select_chatroom():
     try:
-        options = {}
-        option_count = 0
-        dialogs, entities = telegram.get_dialogs(15)
-        for entity in entities:
+        title = urwid.Text('\nTERMGRAM')
+        title.set_align_mode('center')
+        body = [title, urwid.Divider()]
+        _, entities = telegram.get_dialogs(30)
+        for entity in reversed(entities):
             label = get_display_name(entity)
-            options[option_count] = entity, label
-            print("{:>3}: {}".format(option_count, label))
-            option_count += 1
-        answer = int(input("\nSelect chatroom: "))
-        global current_chat
-        current_chat, label = options[answer]
-        header_text.set_text(label)
+            button = urwid.Button(label)
+            urwid.connect_signal(button, 'click', on_selected_chatroom, entity)
+            body.append(urwid.AttrMap(button, None, focus_map='reversed'))
+            list_conversations = urwid.ListBox(urwid.SimpleFocusListWalker(body))
+            main = urwid.Padding(list_conversations, left=3, right=3)
+            top = urwid.Overlay(main, urwid.SolidFill('.'),
+                                align='center', width=('relative', 70),
+                                valign='middle', height=('relative', 70),
+                                min_width=20, min_height=9)
+        global mainloop
+        mainloop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
+        mainloop.run()
     except KeyboardInterrupt:
         sys.exit(0)
 
 
+def on_selected_chatroom(button, entity):
+    global current_chat
+    current_chat = entity
+    global header_text
+    header_text.set_text(get_display_name(entity))
+    raise urwid.ExitMainLoop()
+
+
 def active_chatroom():
+    global message_list
+    message_list = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+    body = urwid.LineBox(message_list)
+
+    global mainframe
+    mainframe = urwid.Frame(header=header_text, body=body, footer=input_field)
+    mainframe.focus_part = 'footer'
+
+    global mainloop
+    mainloop = urwid.MainLoop(mainframe, unhandled_input=input_handler)
     mainloop.run()
 
 
@@ -130,6 +144,8 @@ def update_handler(update):
 
 
 def input_handler(key):
+    global current_chat
+
     if key == 'enter':
         msg = input_field.get_edit_text()
         if msg.strip():  # check for empty message
@@ -138,8 +154,8 @@ def input_handler(key):
             input_field.set_edit_text('')  # clear input
 
     elif key == 'esc':
-        # @TODO: select another chatroom
-        pass
+        current_chat = None
+        raise urwid.ExitMainLoop()
 
     elif key == 'ctrl l':
         # @TODO: clear all messages
@@ -154,7 +170,6 @@ def input_handler(key):
 
 def main():
     init()
-    welcome()
     login()
     loop()
 
