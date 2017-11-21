@@ -55,7 +55,7 @@ def login():
             if not telegram.is_user_authorized():
                 print("Failed to authenticate. Try again.\n")
         except KeyboardInterrupt:
-            sys.exit(0)
+            exit_program()
 
 
 def loop():
@@ -93,7 +93,7 @@ def select_chatroom():
         mainloop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
         mainloop.run()
     except KeyboardInterrupt:
-        sys.exit(0)
+        exit_program()
 
 
 def on_selected_chatroom(button, entity):
@@ -168,10 +168,16 @@ def input_handler(key):
             mainframe.focus_part = 'footer'
 
 
+def exit_program():
+    telegram.disconnect()
+    sys.exit(0)
+
+
 def main():
     init()
     login()
     loop()
+    exit_program()
 
 
 if __name__ == '__main__':
