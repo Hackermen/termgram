@@ -9,8 +9,9 @@ Friendly terminal-based Telegram client.
 ### Install
 ```bash
 git clone https://github.com/hackermen/termgram
-sudo pip3 install -r termgram/requirements.txt
-chmod +x termgram/termgram.py
-sudo ln -s "$(pwd)/termgram/termgram.py" /usr/local/bin/termgram
+cd termgram
+sudo pip3 install -r requirements.txt
+chmod +x termgram.py
+sudo ln -s "$(pwd)/termgram.py" /usr/local/bin/termgram
 ```
 **Run**: `termgram`
