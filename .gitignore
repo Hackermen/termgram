@@ -1,3 +1,5 @@
 env/
 termgram.session
 .idea/
+__pycache__/
+*.pyc
