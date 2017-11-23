@@ -3,131 +3,76 @@ import sys
 
 import urwid
 import telethon
+from telethon.tl import types
+from telethon.utils import get_display_name
 
 from termgram import config
 
 
-# Globals Telegram API
-telegram = telethon.TelegramClient(config.APP_NAME, config.TELEGRAM_API_ID, config.TELEGRAM_API_HASH, update_workers=1)
-current_chat = None  # Entity (User, Group) you're chatting
+# Telegram (Telethon)
+client = None  # type: telethon.TelegramClient
+current_chat = None  # type: telethon.types.User|Channel
 
-# Globals UI (Urwid)
-header_text = urwid.Text('')
-input_field = urwid.Edit('> ')
-mainframe = None  # urwid.Frame
-mainloop = None  # urwid.MainLoop
-message_list = None  # urwid.ListBox
+# UI (Urwid)
+mainloop = None  # type: urwid.MainLoop
+mainframe = None  # type: urwid.Frame
+message_list = None  # type: urwid.ListBox
+header_text = None  # type: urwid.Text
+input_field = None  # type: urwid.Edit
 
 
 def run():
     init()
     login()
     loop()
-    exit_app()
+    exit_program()
 
 
 def init():
-    # Telegram event polling
-    telegram.add_update_handler(update_handler)
+    # Telegram
+    if not any([config.TELEGRAM_ID, config.TELEGRAM_HASH]):
+        print("Missing Telegram API keys at config.py")
+        sys.exit(1)
+    global client
+    client = telethon.TelegramClient(config.SESSION_FILE, config.TELEGRAM_ID, config.TELEGRAM_HASH, update_workers=1)
+    client.add_update_handler(event_polling)
 
-    # UI settings
+    # UI
+    global header_text
+    header_text = urwid.Text('termgram')
     header_text.set_align_mode('center')
+    global input_field
+    input_field = urwid.Edit('> ')
 
 
 def login():
-    telegram.connect()
-    while not telegram.is_user_authorized():
+    client.connect()
+    while not client.is_user_authorized():
         try:
             phone = input("Phone number: ")
-            telegram.sign_in(phone=phone)
+            client.sign_in(phone=phone)
             code = input("Activation code: ")
-            telegram.sign_in(code=code)
-            if not telegram.is_user_authorized():
+            client.sign_in(code=code)
+            if not client.is_user_authorized():
                 print("Failed to authenticate. Try again.\n")
         except KeyboardInterrupt:
-            exit_app()
+            exit_program()
 
 
 def loop():
-    global current_chat
-    while True:
-        try:
-            if current_chat:
-                live_chatroom()
-            else:
-                select_chatroom()
-        except KeyboardInterrupt:
-            current_chat = None
-            select_chatroom()
+    live_chatroom()
 
 
-def select_chatroom():
-    try:
-        title = urwid.Text('\n{}'.format(config.APP_NAME.upper()))
-        title.set_align_mode('center')
-        body = [title, urwid.Divider()]
-        _, entities = telegram.get_dialogs(30)
-        for entity in reversed(entities):
-            label = telethon.utils.get_display_name(entity)
-            button = urwid.Button(label)
-            urwid.connect_signal(button, 'click', on_selected_chatroom, entity)
-            body.append(urwid.AttrMap(button, None, focus_map='reversed'))
-            list_conversations = urwid.ListBox(urwid.SimpleFocusListWalker(body))
-            main = urwid.Padding(list_conversations, left=3, right=3)
-            top = urwid.Overlay(main, urwid.SolidFill('.'),
-                                align='center', width=('relative', 70),
-                                valign='middle', height=('relative', 70),
-                                min_width=20, min_height=9)
-        global mainloop
-        mainloop = urwid.MainLoop(top, palette=[('reversed', 'standout', '')])
-        mainloop.run()
-    except KeyboardInterrupt:
-        exit_app()
-
-
-def on_selected_chatroom(event, entity):
-    global current_chat
-    current_chat = entity
-    global header_text
-    header_text.set_text(telethon.utils.get_display_name(entity))
-    raise urwid.ExitMainLoop()
-
-
-def live_chatroom():
-    global message_list
-    message_list = urwid.ListBox(urwid.SimpleFocusListWalker([]))
-    body = urwid.LineBox(message_list)
-
-    global mainframe
-    mainframe = urwid.Frame(header=header_text, body=body, footer=input_field)
-    mainframe.focus_part = 'footer'
-
-    global mainloop
-    mainloop = urwid.MainLoop(mainframe, unhandled_input=input_handler)
-    mainloop.run()
-
-
-def display_message(date, sender_id, message):
-    date = date.strftime(config.TIMESTAMP_FORMAT)
-    sender_name = telethon.utils.get_display_name(telegram.get_entity(sender_id))
-    if not message:
-        message = '{multimedia ¯\_(ツ)_/¯}'
-    message = " {} | {}: {}".format(date, sender_name, message)
-    message_list.body.insert(0, urwid.Text(message))
-    message_list.set_focus(0)
-    mainloop.draw_screen()
-
-
-def update_handler(update):
-    if isinstance(update, (telethon.types.UpdateNewMessage, telethon.types.UpdateNewChannelMessage)):
+def event_polling(update):
+    if isinstance(update, (types.UpdateNewMessage, types.UpdateNewChannelMessage)):
         if update.message.from_id == current_chat.id or update.message.to_id.channel_id == current_chat.id:
             display_message(update.message.date, update.message.from_id, update.message.message)
 
-    elif isinstance(update, telethon.types.UpdateShortMessage):
+    elif isinstance(update, types.UpdateShortMessage):
         if update.user_id == current_chat.id:
             display_message(update.date, update.user_id, update.message)
 
-    elif isinstance(update, telethon.types.UpdateShortChatMessage):
+    elif isinstance(update, types.UpdateShortChatMessage):
         if update.chat_id == current_chat.id:
             display_message(update.date, update.from_id, update.message)
 
@@ -136,10 +81,10 @@ def input_handler(key):
     global current_chat
 
     if key == 'enter':
-        msg = input_field.get_edit_text()
-        if msg.strip():  # check for empty message
-            telegram.send_message(current_chat, msg)
-            display_message(datetime.datetime.now(), telegram.get_me(), msg)
+        my_message = input_field.get_edit_text()
+        if my_message.strip() and current_chat:
+            client.send_message(current_chat, my_message)
+            display_message(datetime.datetime.now(), client.get_me(), my_message)
             input_field.set_edit_text('')  # clear input
 
     elif key == 'esc':
@@ -157,20 +102,63 @@ def input_handler(key):
             mainframe.focus_part = 'footer'
 
 
-def welcome():
-    t = '''
-         _
-        | |
-        | |_ ___ _ __ _ __ ___   __ _ _ __ __ _ _ __ ___
-        | __/ _ \ '__| '_ ` _ \ / _` | '__/ _` | '_ ` _ \\
-        | ||  __/ |  | | | | | | (_| | | | (_| | | | | | |
-         \__\___|_|  |_| |_| |_|\__, |_|  \__,_|_| |_| |_|
-                                 __/ |
-                                |___/   v{}
-        '''
-    print(t.format(config.APP_VERSION))
+def live_chatroom():
+    global message_list
+    message_list = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+    body = urwid.LineBox(message_list)
+
+    global mainframe
+    mainframe = urwid.Frame(header=header_text, body=body, footer=input_field)
+    mainframe.focus_part = 'footer'
+
+    global columns
+    columns = urwid.Columns([build_contact_list(), mainframe])
+
+    global mainloop
+    mainloop = urwid.MainLoop(columns, unhandled_input=input_handler)
+
+    try:
+        mainloop.run()
+    except KeyboardInterrupt:
+        exit_program()
 
 
-def exit_app():
-    telegram.disconnect()
+def build_contact_list():
+    body = []
+    _, entities = client.get_dialogs(50)
+    for entity in reversed(entities):
+        label = get_display_name(entity)
+        button = urwid.Button(label)
+        urwid.connect_signal(button, 'click', on_selected_chatroom, entity)
+        body.append(urwid.AttrMap(button, None, focus_map='reversed'))
+    list_conversations = urwid.ListBox(urwid.SimpleFocusListWalker(body))
+    main = urwid.Padding(list_conversations, left=7, right=7)
+    return main
+
+
+def on_selected_chatroom(event, entity):
+    global current_chat
+    current_chat = entity
+    global header_text
+    header_text.set_text(get_display_name(entity))
+    columns.set_focus_column(1)
+    # retrieve recent chat (history)
+    total, messages, senders = client.get_message_history(entity)
+    for message in messages:
+        display_message(message.date, message.from_id, message.message)
+
+
+def display_message(date, sender_id, message):
+    date = date.strftime(config.TIMESTAMP_FORMAT)
+    sender_name = get_display_name(sender_id)
+    if not message:
+        message = '{multimedia ¯\_(ツ)_/¯}'
+    message = " {} | {}: {}".format(date, sender_name, message)
+    message_list.body.insert(0, urwid.Text(message))
+    message_list.set_focus(0)
+    mainloop.draw_screen()
+
+
+def exit_program():
+    client.disconnect()
     sys.exit(0)
