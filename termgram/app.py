@@ -82,7 +82,7 @@ def event_polling(update):
 
 
 def input_handler(key):
-    """Handle events accordingly to current focused widget"""
+    """Handle UI key events accordingly to current focused widget"""
 
     # Left Column
     if columns.focus_col == 0:
@@ -100,7 +100,7 @@ def input_handler(key):
 
 
 def message_input_handler(key):
-    """Handle events while writing a message"""
+    """Handles key events while writing a message"""
 
     global current_chat
 
@@ -122,12 +122,12 @@ def message_input_handler(key):
 
 
 def logs_input_handler(key):
-    """Handle events while message logs are in focus"""
+    """Handles key events while message logs are in focus"""
     pass
 
 
 def chatlist_input_handler(key):
-    """Handle events while chat list is in focus"""
+    """Handles key events while chat list is in focus"""
     pass
 
 
@@ -186,7 +186,7 @@ def on_selected_chatroom(event, entity):
 
     # retrieve recent chat (history)
     total, messages, senders = client.get_message_history(entity)
-    for message in messages:
+    for message in reversed(messages):
         display_message(message.date, client.get_entity(message.from_id), message.message)
 
 
