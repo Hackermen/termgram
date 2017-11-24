@@ -82,7 +82,7 @@ def event_polling(update):
 
 
 def input_handler(key):
-    """Handle events accordingly to current focused widget"""
+    """Handle UI key events accordingly to current focused widget"""
 
     # Left Column
     if columns.focus_col == 0:
@@ -100,7 +100,7 @@ def input_handler(key):
 
 
 def message_input_handler(key):
-    """Handle events while writing a message"""
+    """Handles key events while writing a message"""
 
     global current_chat
 
@@ -122,12 +122,12 @@ def message_input_handler(key):
 
 
 def logs_input_handler(key):
-    """Handle events while message logs are in focus"""
+    """Handles key events while message logs are in focus"""
     pass
 
 
 def chatlist_input_handler(key):
-    """Handle events while chat list is in focus"""
+    """Handles key events while chat list is in focus"""
     pass
 
 
@@ -186,15 +186,35 @@ def on_selected_chatroom(event, entity):
 
     # retrieve recent chat (history)
     total, messages, senders = client.get_message_history(entity)
-    for message in messages:
-        display_message(message.date, client.get_entity(message.from_id), message.message)
+    for message in reversed(messages):
+        # normal message
+        if isinstance(message, types.Message):
+            display_message(message.date, client.get_entity(message.from_id), message.message)
+
+        # notification messages
+        elif isinstance(message, types.MessageService):
+            if isinstance(message.action, types.MessageActionChatAddUser):
+                pass
+            elif isinstance(message.action, types.MessageActionChatDeleteUser):
+                pass
+            elif isinstance(message.action, types.MessageActionPinMessage):
+                pass
+            elif isinstance(message.action, types.MessageActionChatEditTitle):
+                pass
+            elif isinstance(message.action, types.MessageActionChatJoinedByLink):
+                pass
+            elif isinstance(message.action, types.MessageActionPhoneCall):
+                pass
 
 
 def display_message(date, sender_id, message):
     """Appends new message to message logs"""
 
     date = date.strftime(config.TIMESTAMP_FORMAT)
-    sender_name = get_display_name(sender_id)
+    if sender_id:
+        sender_name = get_display_name(sender_id)
+    else:
+        sender_name = '>>>'  # notification messages, command outputs, etc
     if not message:
         message = '{multimedia ¯\_(ツ)_/¯}'
     message = " {} | {}: {}".format(date, sender_name, message)
