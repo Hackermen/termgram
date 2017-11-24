@@ -2,8 +2,8 @@ from os import makedirs
 from os.path import expanduser
 
 
-TELEGRAM_ID = 117120
-TELEGRAM_HASH = '4f3d31306935d48f1c9cc42b75838521'
+TELEGRAM_ID = ''
+TELEGRAM_HASH = ''
 
 CONFIG_DIR = expanduser('~') + '/.termgram/'
 SESSION_FILE = CONFIG_DIR + 'auth'
