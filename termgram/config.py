@@ -2,7 +2,7 @@ from os import makedirs
 from os.path import expanduser
 
 
-TELEGRAM_ID = 
+TELEGRAM_ID = ''
 TELEGRAM_HASH = ''
 
 CONFIG_DIR = expanduser('~') + '/.termgram/'
