@@ -82,7 +82,7 @@ def event_polling(update):
 
 
 def input_handler(key):
-    """Handle events accordingly to the current focused widget"""
+    """Handle events accordingly to current focused widget"""
 
     # Left Column
     if columns.focus_col == 0:
@@ -103,6 +103,7 @@ def message_input_handler(key):
     """Handle events while writing a message"""
 
     global current_chat
+
     # Send message
     if key == 'enter':
         my_message = input_field.get_edit_text()
@@ -111,25 +112,22 @@ def message_input_handler(key):
             display_message(datetime.datetime.now(), client.get_me(), my_message)
             input_field.set_edit_text('')  # clear input
 
-    elif key == 'esc':
+    # @TODO: scroll logs up
+    elif key == 'up':
         pass
 
-    elif key == 'tab':
-        if mainframe.focus_part == 'footer':
-            mainframe.focus_part = 'body'
-        else:
-            mainframe.focus_part = 'footer'
+    # @TODO: scroll logs down
+    elif key == 'down':
+        pass
 
 
 def logs_input_handler(key):
-    """Handle events while message history is in focus"""
-
+    """Handle events while message logs are in focus"""
     pass
 
 
 def chatlist_input_handler(key):
     """Handle events while chat list is in focus"""
-
     pass
 
 
@@ -145,7 +143,8 @@ def live_chatroom():
     mainframe.focus_part = 'footer'
 
     global columns
-    columns = urwid.Columns([mainframe, (25, build_contact_list())])
+    contact_list_width = 25
+    columns = urwid.Columns([mainframe, (contact_list_width, build_contact_list())])
 
     global mainloop
     mainloop = urwid.MainLoop(columns, unhandled_input=input_handler)
@@ -157,10 +156,11 @@ def live_chatroom():
 
 
 def build_contact_list():
-    """Returns built widget of contact list"""
+    """Returns widget of contact list"""
 
     body = []
     _, entities = client.get_dialogs(50)
+
     for entity in reversed(entities):
         label = get_display_name(entity)
         label_max_chars = 18
@@ -169,9 +169,10 @@ def build_contact_list():
         button = urwid.Button(label)
         urwid.connect_signal(button, 'click', on_selected_chatroom, entity)
         body.append(urwid.AttrMap(button, None, focus_map='reversed'))
+
     list_conversations = urwid.ListBox(urwid.SimpleFocusListWalker(body))
-    main = urwid.Padding(list_conversations, left=1, right=1)
-    return main
+    widget = urwid.Padding(list_conversations, left=1, right=1)
+    return widget
 
 
 def on_selected_chatroom(event, entity):
@@ -181,11 +182,12 @@ def on_selected_chatroom(event, entity):
     current_chat = entity
     global header_text
     header_text.set_text(get_display_name(entity))
-    columns.set_focus_column(0)
+    columns.set_focus_column(0)  # change focus to Left Column (input message)
+
     # retrieve recent chat (history)
     total, messages, senders = client.get_message_history(entity)
     for message in messages:
-        display_message(message.date, message.from_id, message.message)
+        display_message(message.date, client.get_entity(message.from_id), message.message)
 
 
 def display_message(date, sender_id, message):
@@ -202,7 +204,7 @@ def display_message(date, sender_id, message):
 
 
 def exit_program():
-    """Gracefully exit"""
+    """Gracefully exits"""
 
     client.disconnect()
     sys.exit(0)
