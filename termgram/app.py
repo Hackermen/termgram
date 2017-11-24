@@ -187,14 +187,34 @@ def on_selected_chatroom(event, entity):
     # retrieve recent chat (history)
     total, messages, senders = client.get_message_history(entity)
     for message in reversed(messages):
-        display_message(message.date, client.get_entity(message.from_id), message.message)
+        # normal message
+        if isinstance(message, types.Message):
+            display_message(message.date, client.get_entity(message.from_id), message.message)
+
+        # notification messages
+        elif isinstance(message, types.MessageService):
+            if isinstance(message.action, types.MessageActionChatAddUser):
+                pass
+            elif isinstance(message.action, types.MessageActionChatDeleteUser):
+                pass
+            elif isinstance(message.action, types.MessageActionPinMessage):
+                pass
+            elif isinstance(message.action, types.MessageActionChatEditTitle):
+                pass
+            elif isinstance(message.action, types.MessageActionChatJoinedByLink):
+                pass
+            elif isinstance(message.action, types.MessageActionPhoneCall):
+                pass
 
 
 def display_message(date, sender_id, message):
     """Appends new message to message logs"""
 
     date = date.strftime(config.TIMESTAMP_FORMAT)
-    sender_name = get_display_name(sender_id)
+    if sender_id:
+        sender_name = get_display_name(sender_id)
+    else:
+        sender_name = '>>>'  # notification messages, command outputs, etc
     if not message:
         message = '{multimedia ¯\_(ツ)_/¯}'
     message = " {} | {}: {}".format(date, sender_name, message)
