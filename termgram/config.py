@@ -1,16 +1,21 @@
 import os
 
+
 # Generate API keys: https://my.telegram.org/apps
 TELEGRAM_ID = '' or os.environ['TELEGRAM_ID']
 TELEGRAM_HASH = '' or os.environ['TELEGRAM_HASH']
 
 CONFIG_DIR = os.path.expanduser('~') + '/.termgram/'
 SESSION_FILE = CONFIG_DIR + 'auth'
+IGNORE_FILE = CONFIG_DIR + 'ignore.txt'
 
 TIMESTAMP_FORMAT = '%H:%M'
 
+
 # Init
 os.makedirs(CONFIG_DIR, exist_ok=True)
+open(IGNORE_FILE, 'a').close()
+
 
 APP_VERSION = 0.1
 APP_LOGO = '''

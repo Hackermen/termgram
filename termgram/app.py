@@ -7,6 +7,7 @@ from telethon.tl import types
 from telethon.utils import get_display_name
 
 from termgram import config
+from termgram.ignore import IgnoreFeature
 
 
 # Telegram (Telethon)
@@ -19,6 +20,9 @@ mainframe = None  # type: urwid.Frame
 message_list = None  # type: urwid.ListBox
 header_text = None  # type: urwid.Text
 input_field = None  # type: urwid.Edit
+
+# Features
+ignore_feature = IgnoreFeature()
 
 
 def run():
@@ -35,7 +39,7 @@ def init():
 
     # Telegram
     if not any([config.TELEGRAM_ID, config.TELEGRAM_HASH]):
-        print("Missing Telegram API keys at config.py")
+        print("Missing Telegram API keys in termgram/config.py")
         sys.exit(1)
     global client
     client = telethon.TelegramClient(config.SESSION_FILE, config.TELEGRAM_ID, config.TELEGRAM_HASH, update_workers=1)
@@ -209,6 +213,9 @@ def on_selected_chatroom(event, entity):
 
 def display_message(date, sender_id, message):
     """Appends new message to message logs"""
+
+    if ignore_feature.check(message):
+        return
 
     date = date.strftime(config.TIMESTAMP_FORMAT)
     if sender_id:
