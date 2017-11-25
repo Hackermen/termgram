@@ -1,12 +1,16 @@
-from os import makedirs
-from os.path import expanduser
+import os
 
+# Generate API keys: https://my.telegram.org/apps
+TELEGRAM_ID = '' or os.environ['TELEGRAM_ID']
+TELEGRAM_HASH = '' or os.environ['TELEGRAM_HASH']
 
-TELEGRAM_ID = ''
-TELEGRAM_HASH = ''
-
-CONFIG_DIR = expanduser('~') + '/.termgram/'
+CONFIG_DIR = os.path.expanduser('~') + '/.termgram/'
 SESSION_FILE = CONFIG_DIR + 'auth'
+
+TIMESTAMP_FORMAT = '%H:%M'
+
+# Init
+os.makedirs(CONFIG_DIR, exist_ok=True)
 
 APP_VERSION = 0.1
 APP_LOGO = '''
@@ -19,10 +23,3 @@ APP_LOGO = '''
                                  __/ |
                                 |___/   v{}
         '''.format(APP_VERSION)
-
-
-TIMESTAMP_FORMAT = '%H:%M'
-
-
-# Init
-makedirs(CONFIG_DIR, exist_ok=True)
