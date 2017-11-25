@@ -216,7 +216,7 @@ def display_message(date, sender_id, message):
 
     if ignore_feature.check(message):
         return
-
+      
     date = date.strftime(config.TIMESTAMP_FORMAT)
     if sender_id:
         sender_name = get_display_name(sender_id)
